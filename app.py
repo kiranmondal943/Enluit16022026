@@ -78,43 +78,62 @@ with st.sidebar:
     st.divider()
     
     # --- FEATURE 1: TITAN AI GENERATOR (FIXED) ---
-    with st.expander("🤖 Titan AI Generator", expanded=True):
+   with st.expander("🤖 Titan AI Generator", expanded=True):
         st.info("Auto-write your website content.")
-        groq_key = st.text_input("Groq API Key (Free)", type="password", help="Get at console.groq.com")
+        # Added .strip() to the input to remove accidental spaces
+        raw_key = st.text_input("Groq API Key (Free)", type="password", help="Get at console.groq.com/keys")
+        groq_key = raw_key.strip() if raw_key else ""
+        
         biz_desc = st.text_input("Business Description", placeholder="e.g. Luxury Dental Clinic in Dubai")
+        
         if st.button("✨ Generate Copy"):
             if not groq_key or not biz_desc:
-                st.error("Key & Description required.")
+                st.error("Please enter a valid Groq API Key (starts with gsk_) and a description.")
             else:
                 try:
-                    with st.spinner("Titan AI is writing..."):
+                    with st.spinner("Titan AI is writing... (approx 3s)"):
                         url = "https://api.groq.com/openai/v1/chat/completions"
                         headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
+                        
                         prompt = f"""
-                        Act as a copywriter. Return a JSON object with these keys for a '{biz_desc}' business:
-                        hero_h (Catchy headline), hero_sub (2 sentences), about_h (Title), about_short (3 sentences),
-                        feat_data (4 lines. Format: iconname | Title | Description. Icons: bolt, wallet, shield, star, heart).
+                        Act as a professional copywriter. Return a JSON object (NO markdown, just raw JSON) with these exact keys for a '{biz_desc}' business:
+                        "hero_h" (Catchy headline, max 6 words), 
+                        "hero_sub" (Compelling subheadline, 2 sentences), 
+                        "about_h" (About section title), 
+                        "about_short" (3 punchy sentences),
+                        "feat_data" (4 lines exactly. Format: iconname | Title | Description. Icons must be one of: bolt, wallet, shield, star, heart, table, layers).
                         """
-                        data = {"messages": [{"role": "user", "content": prompt}], "model": "llama3-8b-8192", "response_format": {"type": "json_object"}}
+                        
+                        # Updated to a more stable model ID
+                        data = {
+                            "messages": [{"role": "user", "content": prompt}], 
+                            "model": "llama-3.1-8b-instant", 
+                            "response_format": {"type": "json_object"}
+                        }
+                        
                         resp = requests.post(url, headers=headers, json=data)
                         
-                        # Fix: Check for HTTP errors
-                        if resp.status_code != 200:
-                            st.error(f"Groq API Error {resp.status_code}: {resp.text}")
+                        if resp.status_code == 401:
+                            st.error("❌ Invalid API Key. Please get a new key starting with 'gsk_' from console.groq.com")
+                        elif resp.status_code != 200:
+                            st.error(f"Groq Error {resp.status_code}: {resp.text}")
                         else:
-                            res_json = resp.json()['choices'][0]['message']['content']
-                            parsed = json.loads(res_json)
-                            
-                            # Update State
-                            st.session_state.hero_h = parsed.get('hero_h', st.session_state.hero_h)
-                            st.session_state.hero_sub = parsed.get('hero_sub', st.session_state.hero_sub)
-                            st.session_state.about_h = parsed.get('about_h', st.session_state.about_h)
-                            st.session_state.about_short = parsed.get('about_short', st.session_state.about_short)
-                            st.session_state.feat_data = parsed.get('feat_data', st.session_state.feat_data)
-                            st.success("Content Generated!")
-                            st.rerun() # Fix: Force rerun to update UI inputs
+                            try:
+                                res_json = resp.json()['choices'][0]['message']['content']
+                                parsed = json.loads(res_json)
+                                
+                                # Update State
+                                st.session_state.hero_h = parsed.get('hero_h', st.session_state.hero_h)
+                                st.session_state.hero_sub = parsed.get('hero_sub', st.session_state.hero_sub)
+                                st.session_state.about_h = parsed.get('about_h', st.session_state.about_h)
+                                st.session_state.about_short = parsed.get('about_short', st.session_state.about_short)
+                                st.session_state.feat_data = parsed.get('feat_data', st.session_state.feat_data)
+                                st.success("Content Generated! The site has been updated.")
+                                st.rerun()
+                            except ValueError:
+                                st.error("AI returned invalid JSON. Please try again.")
                 except Exception as e:
-                    st.error(f"AI Error: {e}")
+                    st.error(f"Connection Error: {e}")
 
     # 3.1 VISUAL DNA
     with st.expander("🎨 Visual DNA", expanded=False):
