@@ -74,37 +74,36 @@ st.markdown("""
 # --- 3. SIDEBAR: THE CONTROL CENTER ---
 with st.sidebar:
     st.title("Titan Architect")
-    st.caption("v35.4 | Booking Guide Added")
+    st.caption("v35.4 | Fixed Indentation")
     st.divider()
     
-    # --- FEATURE 1: TITAN AI GENERATOR (FIXED) ---
-   with st.expander("🤖 Titan AI Generator", expanded=True):
+    # --- FEATURE 1: TITAN AI GENERATOR (FIXED INDENTATION & KEY) ---
+    with st.expander("🤖 Titan AI Generator", expanded=True):
         st.info("Auto-write your website content.")
-        # Added .strip() to the input to remove accidental spaces
-        raw_key = st.text_input("Groq API Key (Free)", type="password", help="Get at console.groq.com/keys")
+        
+        # 1. FIX: Added strip() to remove accidental spaces from copy-pasting
+        raw_key = st.text_input("Groq API Key (Free)", type="password", help="Get at console.groq.com")
         groq_key = raw_key.strip() if raw_key else ""
         
         biz_desc = st.text_input("Business Description", placeholder="e.g. Luxury Dental Clinic in Dubai")
         
         if st.button("✨ Generate Copy"):
             if not groq_key or not biz_desc:
-                st.error("Please enter a valid Groq API Key (starts with gsk_) and a description.")
+                st.error("Key & Description required.")
             else:
                 try:
-                    with st.spinner("Titan AI is writing... (approx 3s)"):
+                    with st.spinner("Titan AI is writing..."):
                         url = "https://api.groq.com/openai/v1/chat/completions"
                         headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
                         
+                        # 2. FIX: Improved Prompt for reliability
                         prompt = f"""
-                        Act as a professional copywriter. Return a JSON object (NO markdown, just raw JSON) with these exact keys for a '{biz_desc}' business:
-                        "hero_h" (Catchy headline, max 6 words), 
-                        "hero_sub" (Compelling subheadline, 2 sentences), 
-                        "about_h" (About section title), 
-                        "about_short" (3 punchy sentences),
-                        "feat_data" (4 lines exactly. Format: iconname | Title | Description. Icons must be one of: bolt, wallet, shield, star, heart, table, layers).
+                        Act as a copywriter. Return a JSON object with these keys for a '{biz_desc}' business:
+                        hero_h (Catchy headline), hero_sub (2 sentences), about_h (Title), about_short (3 sentences),
+                        feat_data (4 lines. Format: iconname | Title | Description. Icons: bolt, wallet, shield, star, heart).
                         """
                         
-                        # Updated to a more stable model ID
+                        # 3. FIX: Updated Model ID for better stability
                         data = {
                             "messages": [{"role": "user", "content": prompt}], 
                             "model": "llama-3.1-8b-instant", 
@@ -113,27 +112,25 @@ with st.sidebar:
                         
                         resp = requests.post(url, headers=headers, json=data)
                         
+                        # 4. FIX: Handle 401 specifically
                         if resp.status_code == 401:
-                            st.error("❌ Invalid API Key. Please get a new key starting with 'gsk_' from console.groq.com")
+                            st.error("❌ Invalid API Key. Please ensure it starts with 'gsk_' and has no spaces.")
                         elif resp.status_code != 200:
-                            st.error(f"Groq Error {resp.status_code}: {resp.text}")
+                            st.error(f"Groq API Error {resp.status_code}: {resp.text}")
                         else:
-                            try:
-                                res_json = resp.json()['choices'][0]['message']['content']
-                                parsed = json.loads(res_json)
-                                
-                                # Update State
-                                st.session_state.hero_h = parsed.get('hero_h', st.session_state.hero_h)
-                                st.session_state.hero_sub = parsed.get('hero_sub', st.session_state.hero_sub)
-                                st.session_state.about_h = parsed.get('about_h', st.session_state.about_h)
-                                st.session_state.about_short = parsed.get('about_short', st.session_state.about_short)
-                                st.session_state.feat_data = parsed.get('feat_data', st.session_state.feat_data)
-                                st.success("Content Generated! The site has been updated.")
-                                st.rerun()
-                            except ValueError:
-                                st.error("AI returned invalid JSON. Please try again.")
+                            res_json = resp.json()['choices'][0]['message']['content']
+                            parsed = json.loads(res_json)
+                            
+                            # Update State
+                            st.session_state.hero_h = parsed.get('hero_h', st.session_state.hero_h)
+                            st.session_state.hero_sub = parsed.get('hero_sub', st.session_state.hero_sub)
+                            st.session_state.about_h = parsed.get('about_h', st.session_state.about_h)
+                            st.session_state.about_short = parsed.get('about_short', st.session_state.about_short)
+                            st.session_state.feat_data = parsed.get('feat_data', st.session_state.feat_data)
+                            st.success("Content Generated!")
+                            st.rerun() 
                 except Exception as e:
-                    st.error(f"Connection Error: {e}")
+                    st.error(f"AI Error: {e}")
 
     # 3.1 VISUAL DNA
     with st.expander("🎨 Visual DNA", expanded=False):
@@ -1093,7 +1090,7 @@ def gen_blog_post_html():
                                     <a href="https://www.facebook.com/sharer/sharer.php?u=${{u}}" target="_blank" class="share-btn bg-fb"><svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></a>
                                     <a href="https://twitter.com/intent/tweet?url=${{u}}&text=${{t}}" target="_blank" class="share-btn bg-x"><svg viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584l-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"></path></svg></a>
                                     <a href="https://www.linkedin.com/sharing/share-offsite/?url=${{u}}" target="_blank" class="share-btn bg-li"><svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2a2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2zM4 2a2 2 0 1 1-2 2a2 2 0 0 1 2-2z"></path></svg></a>
-                                    <a href="https://reddit.com/submit?url=${{u}}&title=${{t}}" target="_blank" class="share-btn bg-rd"><svg viewBox="0 0 24 24"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 1.249.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></path></svg></a>
+                                    <a href="https://reddit.com/submit?url=${{u}}&title=${{t}}" target="_blank" class="share-btn bg-rd"><svg viewBox="0 0 24 24"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></path></svg></a>
                                 </div>
                             </div>
                             <a href="blog.html" class="btn btn-primary" style="margin-top:2rem;">&larr; Back to Blog</a>
